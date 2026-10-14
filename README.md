@@ -48,6 +48,20 @@ docker compose exec db psql -U dataguard -d dataguard -c "SELECT 1"
 curl -s localhost:8000/health
 ```
 
+## HTTPS local (Caddy, CA interna)
+
+O Compose sobe o Caddy terminando TLS na `127.0.0.1:443` com certificado
+self-signed (`tls internal`) e HSTS. Prova:
+
+```bash
+curl -sk -D - https://localhost/health -o /dev/null   # -k: CA interna, só lab
+```
+
+Troca consciente: `-k` confia em qualquer certificado — aceitável contra o
+próprio laboratório, proibido como hábito. Em produção, o mesmo Caddyfile com
+domínio real emite ACME público automaticamente (sem `tls internal`), a porta
+da API deixaria de ser publicada e o `uvicorn` continuaria atrás do proxy.
+
 - API: http://localhost:8000 — saúde em `GET /health`
 - OpenAPI interativa: http://localhost:8000/docs
 
@@ -132,6 +146,7 @@ registros antigos ilegíveis. Procedimento:
 # 5. Descarte a antiga com segurança e faça backup da nova fora do repo
 ```
 
-## Fora de escopo (de propósito)
+## Evoluções futuras (fora deste ciclo)
 
-HTTPS/TLS. Itens para evoluir o portfólio depois.
+Manifestos Kubernetes, backup/restore do Postgres, alertas sobre métricas.
+O ciclo de portfólio (Etapas 0–14) está fechado.

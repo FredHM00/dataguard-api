@@ -41,5 +41,18 @@ services:
     # Sem volume de proposito: contadores de rate limit sao efemeros.
     # Perder o estado num restart apenas afrouxa o limite por uma janela.
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      api:
+        condition: service_started
+
 volumes:
   pgdata:
+  caddy_data:

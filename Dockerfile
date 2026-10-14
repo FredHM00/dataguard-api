@@ -25,4 +25,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# A API roda atras do Caddy no Compose: confia em X-Forwarded-For/Proto para
+# o rate limit enxergar o IP real. Aberto a qualquer origem porque so o
+# loopback alcanca a porta direta; em producao, a porta da API nao seria
+# publicada (so o proxy falaria com ela).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

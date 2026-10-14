@@ -1,0 +1,11 @@
+# Borda TLS do laboratorio (Etapa 14): Caddy termina HTTPS com CA interna
+# (self-signed). Producao usaria ACME publico com dominio real (ver README).
+{
+    admin off
+}
+
+https://localhost {
+    tls internal
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    reverse_proxy api:8000
+}
