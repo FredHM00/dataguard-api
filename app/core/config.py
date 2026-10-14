@@ -1,13 +1,14 @@
 """Configuracoes lidas de variaveis de ambiente (arquivo .env local).
 
 Nenhum segredo mora no codigo: tudo sensivel chega por ambiente.
+JWT_SECRET_KEY nao tem default de proposito: sem ele a app nem importa.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Ajustes de conexao com o banco (Etapa 2; JWT/Fernet entram na Etapa 3/4)."""
+    """Ajustes de banco (Etapa 2) + JWT (Etapa 3). Fernet entra na Etapa 4."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -17,6 +18,10 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "127.0.0.1"
     POSTGRES_PORT: int = 5432
     DATABASE_URL: str | None = None
+
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 30
 
     @property
     def database_url(self) -> str:
