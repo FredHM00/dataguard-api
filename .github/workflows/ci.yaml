@@ -31,6 +31,10 @@ jobs:
       POSTGRES_PORT: 5432
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historico completo: o gitleaks-action monta um range
+          # (commit-base..HEAD) que nao resolve em clone raso.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
