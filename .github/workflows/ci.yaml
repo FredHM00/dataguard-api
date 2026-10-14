@@ -23,12 +23,22 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       POSTGRES_USER: dataguard
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: dataguard
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
+      RATELIMIT_STORAGE_URI: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v4
         with:

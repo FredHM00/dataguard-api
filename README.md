@@ -49,6 +49,7 @@ uvicorn app.main:app --reload --port 8000
 | `DATABASE_URL` | não | Sobrescreve a URL montada (CI, testes manuais) |
 | `JWT_SECRET_KEY` | sim | Assinatura dos tokens (sem default de propósito) |
 | `FERNET_KEY` | sim | Criptografia das observações (sem default, sem fallback) |
+| `RATELIMIT_STORAGE_URI` | não | `memory://` (padrão, 1 processo) ou `redis://127.0.0.1:6379` (distribuído; Compose já sobe o Redis) |
 
 ## Testes e verificações
 
@@ -96,6 +97,6 @@ compose.yaml         Postgres 16 (loopback) + banco de testes no init
 
 ## Fora de escopo (de propósito)
 
-HTTPS/TLS, Redis para rate limit distribuído, rotação de chaves Fernet,
-refresh tokens, observabilidade (logs estruturados/métricas), hardening de
+HTTPS/TLS, rotação de chaves Fernet,
+observabilidade (logs estruturados/métricas), hardening de
 container. Itens para evoluir o portfólio depois.

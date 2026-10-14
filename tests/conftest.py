@@ -3,6 +3,12 @@
 Cada teste ve um banco vazio e nada que ele faca sobrevive ao teste.
 """
 
+import os
+
+# Antes de importar a app: testes sempre em memoria, mesmo que o .env local
+# aponte para Redis (hermeticidade; o caminho Redis e provado no CI).
+os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

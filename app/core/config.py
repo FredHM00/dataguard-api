@@ -31,6 +31,10 @@ class Settings(BaseSettings):
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Onde o slowapi guarda os contadores: memoria local (1 processo, dev/teste)
+    # ou redis://... (multiplos workers/maquinas). Testes forcam memoria.
+    RATELIMIT_STORAGE_URI: str = "memory://"
+
     @property
     def database_url(self) -> str:
         """Monta a URL do SQLAlchemy; DATABASE_URL tem precedencia se definida."""
