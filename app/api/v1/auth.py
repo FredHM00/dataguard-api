@@ -43,4 +43,4 @@ def login(
             detail="invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
-    return {"access_token": create_access_token(user.id), "token_type": "bearer"}
+    return {"access_token": create_access_token(user.id), "token_type": "bearer"}  # nosec B105: "bearer" e o tipo de token OAuth2 (RFC 6750), nao uma senha

@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     POSTGRES_USER: str = "dataguard"
-    POSTGRES_PASSWORD: str = "dataguard-dev-only"
+    # Sem default de proposito (endurecido via Bandit na Etapa 5): mesmo sendo
+    # so o banco local, segredo nao mora no codigo. O .env fornece o valor.
+    POSTGRES_PASSWORD: str
     POSTGRES_DB: str = "dataguard"
     POSTGRES_HOST: str = "127.0.0.1"
     POSTGRES_PORT: int = 5432
