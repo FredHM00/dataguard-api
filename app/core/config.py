@@ -4,11 +4,13 @@ Nenhum segredo mora no codigo: tudo sensivel chega por ambiente.
 JWT_SECRET_KEY e FERNET_KEY nao tem default: sem eles a app nem importa.
 """
 
+from datetime import timedelta
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Banco (Etapa 2) + JWT (Etapa 3) + Fernet (Etapa 4)."""
+    """Banco (Etapa 2) + JWT (Etapa 3) + Fernet (Etapa 4) + refresh (Etapa 7)."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -27,6 +29,8 @@ class Settings(BaseSettings):
 
     FERNET_KEY: str
 
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     @property
     def database_url(self) -> str:
         """Monta a URL do SQLAlchemy; DATABASE_URL tem precedencia se definida."""
@@ -36,6 +40,11 @@ class Settings(BaseSettings):
             f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+
+    @property
+    def refresh_expires(self) -> timedelta:
+        """Vida util do refresh token (longa; o access continua curto)."""
+        return timedelta(days=self.REFRESH_TOKEN_EXPIRE_DAYS)
 
 
 settings = Settings()

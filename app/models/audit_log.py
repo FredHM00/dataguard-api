@@ -16,6 +16,8 @@ from app.db.base import Base
 class AuditAction:
     AUTH_REGISTER = "auth.register"
     AUTH_LOGIN = "auth.login"
+    AUTH_REFRESH = "auth.refresh"
+    AUTH_LOGOUT = "auth.logout"
     RECORD_CREATE = "record.create"
     RECORD_READ = "record.read"
     RECORD_UPDATE = "record.update"

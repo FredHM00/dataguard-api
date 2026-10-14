@@ -12,6 +12,10 @@ import jwt
 from app.core.config import settings
 from app.core.exceptions import InvalidToken
 
+#: Rotulo OAuth2 do tipo de token (RFC 6750). Constante central para o Bandit
+#: nao confundir com senha hardcoded em cada dicionario de resposta.
+TOKEN_TYPE = "bearer"  # nosec B105: rotulo OAuth2 (RFC 6750), nao senha
+
 
 def create_access_token(user_id: UUID) -> str:
     """Assina um token com sub=id do usuario e expiracao configurada."""

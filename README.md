@@ -1,5 +1,7 @@
 # DataGuard API
 
+[![CI](https://github.com/FredHM00/dataguard-api/actions/workflows/ci.yaml/badge.svg)](https://github.com/FredHM00/dataguard-api/actions)
+
 API REST educacional para gerenciamento de registros fictícios de atendimento, com autenticação JWT, criptografia de observações sensíveis e trilha de auditoria.
 
 > **Aviso:** projeto de portfólio (nível júnior) para estudo. **Não está pronto para produção**, não garante conformidade legal nem segurança absoluta. Usa apenas dados fictícios. HTTPS, segredos centralizados e demais controles de produção exigiriam configuração adicional.

@@ -8,7 +8,9 @@ Falhas de validação: `422` com o detalhe do campo. Login sob rate limit: `429`
 | Método | Path | Corpo | Respostas |
 |---|---|---|---|
 | POST | `/auth/register` | `{email, password}` (8–128 chars; sem `role`) | `201` perfil · `409` e-mail usado · `422` inválido/`role` enviado |
-| POST | `/auth/login` | form OAuth2 (`username`=e-mail, `password`) | `200` `{access_token, token_type}` · `401` genérico · `429` abuso |
+| POST | `/auth/login` | form OAuth2 (`username`=e-mail, `password`) | `200` `{access_token, refresh_token, token_type}` · `401` genérico · `429` abuso |
+| POST | `/auth/refresh` | `{refresh_token}` (uso único; reuso revoga a família) | `200` par novo · `401` inválido/expirado/reutilizado · `429` abuso |
+| POST | `/auth/logout` | `{refresh_token}` (idempotente: desconhecido também dá `204`) | `204` sem corpo |
 
 ## Usuário (JWT)
 

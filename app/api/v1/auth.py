@@ -1,17 +1,16 @@
-"""Endpoints de autenticacao: cadastro e login."""
+"""Endpoints de autenticacao: cadastro, login, refresh e logout."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import DuplicateEmail, InvalidCredentials
+from app.core.exceptions import DuplicateEmail, InvalidCredentials, InvalidToken
 from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.token import Token
+from app.schemas.token import LogoutRequest, RefreshRequest, Token
 from app.schemas.user import UserCreate, UserRead
-from app.security.tokens import create_access_token
-from app.services import user_service
+from app.services import refresh_service, user_service
 
 router = APIRouter()
 
@@ -34,7 +33,7 @@ def login(
     form: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
-    """Autentica e emite JWT. Form OAuth2: o campo "username" carrega o e-mail."""
+    """Autentica e emite o par access (30min) + refresh (7 dias, uso unico)."""
     try:
         user = user_service.authenticate(db, email=form.username, password=form.password)
     except InvalidCredentials:
@@ -43,4 +42,24 @@ def login(
             detail="invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
-    return {"access_token": create_access_token(user.id), "token_type": "bearer"}  # nosec B105: "bearer" e o tipo de token OAuth2 (RFC 6750), nao uma senha
+    return refresh_service.issue_pair(db, user)
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("10/minute")
+def refresh(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+    """Troca um refresh valido por um par novo (rotacao; reuso = 401 + revoga tudo)."""
+    try:
+        return refresh_service.rotate(db, payload.refresh_token)
+    except InvalidToken:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid or expired refresh token",
+        ) from None
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(payload: LogoutRequest, db: Session = Depends(get_db)) -> None:
+    """Revoga o refresh (idempotente: desconhecido tambem devolve 204)."""
+    refresh_service.revoke(db, payload.refresh_token)
+    return None
