@@ -1,0 +1,74 @@
+DATAGUARD API — NOTAS PARA DESENVOLVEDOR SÊNIOR (revisão técnica)
+====================================================================
+https://github.com/FredHM00/dataguard-api · 14 etapas, 66 testes, 2 migrações,
+CI com 9+ runs (sequência verde após fix de infra). Propositalmente júnior no
+escopo, profissional nos controles. Abaixo o que importa numa revisão.
+
+1. MODELO DE AMEAÇAS (assumido)
+---------------------------------
+Atacante: usuário autenticado curioso/malicioso + internet (borda TLS).
+Fora do modelo: insider com acesso ao host/.env, comprometimento do IdP
+(não há), ataques à cadeia de build. Segredos em .env gitignored; CI usa
+segredos efêmeros por run (GITHUB_ENV, nunca logados).
+
+2. DECISÕES E TRADE-OFFS (desafie estas)
+------------------------------------------
+- 404 em vez de 403 p/ registro alheio (anti-oráculo de existência). Custo:
+  debug pior p/ cliente legítimo; mitigado por request-id no log.
+- JWT HS256 simétrico (KISS) vs RS256: rotação de JWT_SECRET exige restart
+  e invalida tudo — aceito e documentado; sem refresh de access separado
+  por escopo (sem scopes/roles no token além de sub).
+- Refresh com detecção de roubo por revogação familiar: trade-off real —
+  um atacante com token velho pode DoS-ar a vítima (revoga a família).
+  Escolha consciente (roubo > DoS p/ este perfil); sem sliding window.
+- Fernet (AEAD, ok) com envelope manual via KeyRing; rotação online em
+  lotes de 500 com abort fail-closed. Sem versionamento de chave por linha
+  (qual chave cifrou o quê não é rastreável — aceito).
+- Argon2 defaults (t=3,m=64MB,p=4); SHA-256 p/ refresh (entropia 256b já).
+  Dummy-hash anti-enumeração (timing aproximado, não provado).
+- Checks+strings vs ENUM nativo (migração simples > tipagem no banco).
+  UUID PK (anti-enumeração, custo de 16B + localidade de índice pior).
+- Auditoria transacional com o dado (atomicidade) vs outbox (durabilidade
+  sob falha parcial) — outbox seria o próximo passo sério.
+- slowapi memory default; Redis via URI (contadores efêmeros, sem volume).
+  Sem teste de condição de corrida no limiter.
+- Métricas/logs em memória e por processo (múltiplos workers divergem);
+  sem trace distribuído; uvicorn access log duplica o nosso em dev.
+- Baseline ZAP não autenticado (superfície pública); CSP/frame fora porque
+  não há HTML próprio (reavaliar se /docs for exposto além de dev).
+- skip deliberate: lockout por conta (só rate por IP), 2FA, PASETO, mTLS
+  interno, backup/restore testado, SBOM/assinatura de imagem, pin de digest
+  no Compose/CI (tags mutáveis: postgres:16-alpine, redis:7-alpine).
+
+3. RISCOS RESIDUAIS (declarados, não escondidos)
+--------------------------------------------------
+- --forwarded-allow-ips "*" atrás do Caddy: correto só porque a porta direta
+  é loopback; se a porta vazar p/ rede, XFF spoofing quebra o rate limit.
+- Logout 204 idempotente: esconde validade de token (proposital).
+- Admin lista tudo (by design); sem SoD/approval p/ ações destrutivas.
+- update sem controle de concorrência (lost update silencioso; sem ETag/IF).
+- Sem rotação de JWT_SECRET documentada como procedimento (só Fernet tem).
+- .env.example contém placeholders que um novato pode copiar p/ staging.
+- Dependências sem lockfile (faixas no pyproject; CI resolve flutuante —
+  pip-audit mitiga, não elimina).
+
+4. EVIDÊNCIAS VERIFICÁVEIS (não claims)
+-----------------------------------------
+- 66 testes incl.: A×B em 3 verbos, reuso de refresh, família revogada,
+  alg=none forjado, chave errada, SQLi literal, 429 no 11º login (memória
+  e Redis), ciphertext em repouso, trilha sem segredos (varredura textual).
+- Migrações: upgrade/downgrade/fresh-DB provados; 2ª migração autogenerate
+  revisada (só diff esperado).
+- Scanners: bandit limpo (1 nosec justificado), pip-audit limpo, gitleaks
+  limpo (histórico completo no CI após fix de fetch-depth), ZAP 66 PASS/
+  0 FAIL/1 INFO triado no fonte da regra (10049-3 -> 10049-1 pós no-store).
+- Falhas honestas registradas nos relatórios: quoting shell, cut comendo
+  padding base64, testes presumindo .env single-key, teste de substring no
+  Dockerfile/Caddyfile (virou regex), nosec duplicado (virou constante).
+
+5. O QUE EU MUDARIA COM MAIS UMA SEMANA
+-----------------------------------------
+Outbox p/ auditoria, ETag nos PATCH, lockout por conta + alerta, teste de
+carga no login (validar 10/min sob Redis), SBOM + digest pin, scan ZAP
+autenticado via script de login, remoção da porta direta da API no Compose
+(quebrar dev direto em troca de trust boundary limpo).

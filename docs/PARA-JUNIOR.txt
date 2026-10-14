@@ -1,0 +1,114 @@
+DATAGUARD API — GUIA PARA DESENVOLVEDOR JÚNIOR
+=================================================
+Projeto de portfólio backend: FastAPI + PostgreSQL, do zero ao CI verde.
+Repositório: https://github.com/FredHM00/dataguard-api
+
+1. AMBIENTE (tudo verificado, nada presumido)
+---------------------------------------------
+- Ubuntu 24.04 no WSL 2, Docker Desktop com integração WSL, Python 3.12.3,
+  Git. Projeto em ~/projects/dataguard-api (filesystem Linux, não OneDrive).
+- Lições reais do caminho: WSL sem kernel (MSI manual pois wuauserv
+  desativado), Docker sem integração WSL (toggle na UI + grupo docker),
+  quoting PowerShell->wsl->bash (aspas simples externas + sem aspas duplas
+  internas, ou cp de arquivos em vez de echo).
+
+2. STACK E O PORQUÊ DE CADA PEÇA
+---------------------------------
+- FastAPI: API REST com validação automática e /docs interativo.
+- SQLAlchemy 2.x (Mapped/mapped_column) + Alembic: ORM tipado e migrações
+  versionadas (autogenerate SEMPRE revisado antes de aplicar).
+- Pydantic v2 + pydantic-settings: schemas (extra="forbid" nos inputs) e
+  config via .env. EmailStr exige email-validator.
+- PyJWT (não python-jose, abandonado) HS256, claims mínimas (sub+exp).
+- argon2-cffi (PasswordHasher, defaults) + hash dummy anti-enumeração.
+- cryptography Fernet p/ notes_ciphertext; KeyRing multi-chave p/ rotação.
+- slowapi (10/min no login, 200/min global; memory:// default, redis:// no
+  Compose/CI) + python-multipart (form OAuth2).
+- pytest + httpx (TestClient), bandit, pip-audit, gitleaks 8.30.1, ZAP
+  baseline via Docker, Caddy (TLS interno) no Compose.
+
+3. ARQUITETURA (fluxo de um POST /records)
+-------------------------------------------
+Cliente -> FastAPI (app/api) -> get_current_user (JWT) -> service (guard de
+posse) -> Fernet encrypt -> SQLAlchemy -> Postgres; audit log na MESMA
+transação; resposta Pydantic sem ciphertext. Camadas: api (só HTTP),
+services (regras), models (ORM), security (Argon2/JWT/Fernet), audit
+(flush sem commit), core (settings/exceções/limiter/logging). Sem camada
+repository (YAGNI; extrair quando repetir 3x).
+
+4. BANCO (3 tabelas + refresh_tokens + alembic_version)
+--------------------------------------------------------
+- users: id UUID PK, email único+índice, password_hash (só hash), role com
+  CHECK (user/admin), is_active bool, created_at timestamptz.
+- records: id UUID, owner_id FK -> users ON DELETE CASCADE + índice, title
+  200, category 50, notes_ciphertext Text, status com CHECK
+  (open/in_progress/closed), created/updated.
+- audit_logs: id UUID, actor_id anulável FK -> users ON DELETE SET NULL
+  (a trilha sobrevive ao usuário), action/result (CHECK)/resource_type/
+  resource_id/created_at com índices.
+- refresh_tokens: user_id FK CASCADE, token_hash SHA-256 único, expires_at,
+  revoked_at.
+- Decisões: UUID anti-enumeração; Checks em vez de ENUM nativo (migração
+  trivial); convenção de nomes de constraints (naming_convention).
+- Migrações 55934bce3383 (inicial) e 59201e19bccd (refresh): upgrade,
+  downgrade e fresh-DB provados.
+
+5. AUTHN/AUTHZ (o coração do projeto)
+--------------------------------------
+- Cadastro público sem campo role (422 se enviado); papel sempre "user".
+- Login: 401 único p/ e-mail inexistente/senha errada/inativo (+ dummy hash
+  p/ tempo constante). Form OAuth2 (username = e-mail).
+- JWT 30min; refresh opaco 7 dias, SHA-256 no banco, rotação a cada uso;
+  reuso de refresh rotacionado = roubo -> revoga a família + 401 + audit.
+  Logout idempotente (sempre 204, anti-oráculo).
+- Guards: get_current_user (401) e require_admin (403). Registro alheio =
+  404 (não 403): 403 confirma existência.
+- Rate limit: login/refresh 10/min; testes resetam o storage por teste e um
+  teste prova o 429 no 11º login.
+
+6. CRIPTOGRAFIA E AUDITORIA
+----------------------------
+- notes cifrado ANTES de persistir; descriptografia SÓ após o guard.
+  Falha -> 500 genérico. Chave via FERNET_KEYS (lista, 1ª = primária) ou
+  FERNET_KEY legado; sem chave válida o import quebra (fail-closed).
+- Rotação sem downtime: FERNET_KEYS="nova,atual" -> restart -> python -m
+  app.security.rotate (lotes de 500, aborta na 1ª linha ilegível) ->
+  FERNET_KEYS="nova". Auditado como record.reencrypt (ator NULL).
+- Audita-se: mutações, negadas, refresh/logout/reencrypt, leitura da
+  própria auditoria. NÃO se audita: GET individual e listagem (ruído).
+  Nunca: senhas, tokens, notes em claro (teste varre a trilha).
+
+7. PAGINAÇÃO, OBSERVABILIDADE, BORDA
+-------------------------------------
+- Offset (page/page_size ≤100, com total) + cursor (/records/cursor,
+  tupla (created_at,id), next_cursor, limit+1 sem COUNT).
+- Log JSON/stdout (método, path sanitizado, status, duração, X-Request-ID
+  gerado ou ecoado); sem query string nem corpos. /metrics Prometheus
+  (contadores em memória, por processo).
+- SecurityHeaders: Cache-Control no-store + nosniff (achado do ZAP triado
+  no código-fonte da regra). Caddy: TLS interno + HSTS, só 443 loopback;
+  uvicorn --proxy-headers p/ o limiter ver o IP real.
+- Container: slim, uid 10000, sem .env, healthcheck stdlib; política como
+  teste (test_dockerfile.py, test_tls_policy.py).
+
+8. QUALIDADE (comandos — todos no README)
+------------------------------------------
+pytest -q (66 testes, banco dataguard_test + rollback); bandit -r app
+(1 falso positivo documentado com nosec + 1 endurecimento real:
+POSTGRES_PASSWORD virou obrigatório); pip-audit (limpo); gitleaks
+(4+ commits, limpo; .env provado fora do git); ZAP baseline (66 PASS,
+0 FAIL, 1 INFO tratado; fora do CI de propósito); CI com 12-14 passos
+verdes incluindo build da imagem e smoke no container.
+
+9. POR ONDE ESTUDAR (arquivos-chave)
+--------------------------------------
+app/services/record_service.py (posse+transação), app/api/deps.py (guards),
+app/security/crypto.py + rotate.py (KeyRing), app/services/refresh_service.py
+(roubo), tests/conftest.py (isolamento), docs/sql_examples.sql (10 queries
+comentadas), docs/zap.md (procedimento + triage), SECURITY.md.
+
+10. PARA EVOLUIR DEPOIS
+------------------------
+Manifestos k8s, backup/restore, alertas em métricas, scan ZAP autenticado,
+página HTML própria (CSP passaria a importar), refresh com durações por
+"remember me". O ciclo 0–14 está fechado e verde.

@@ -1,0 +1,62 @@
+DATAGUARD API — EXPLICADO PARA QUEM NÃO É DA ÁREA
+================================================
+
+1. O QUE É ESTE PROJETO?
+------------------------
+Imagine um fichário com cadeado onde uma clínica guarda fichas de
+atendimento: cada ficha tem título, categoria, observações confidenciais e
+situação (aberta, em andamento, fechada). O DataGuard é a versão digital
+desse fichário, feita como trabalho de estudo de um estudante de
+programação (Frederick, 42 São Paulo).
+
+Ele não guarda nada real: todos os nomes e dados usados nos testes são
+inventados. E ele não está pronto para uso de verdade (um banco ou hospital
+precisaria de muito mais) — serve para demonstrar que o autor sabe construir
+um sistema com cuidado e segurança básica.
+
+2. COMO TUDO COMEÇOU (DO ZERO MESMO)
+-------------------------------------
+O computador só tinha Windows, sem nada de programação instalado. Antes de
+qualquer código, foi preciso instalar:
+- o Ubuntu (um sistema operacional gratuito) dentro do Windows;
+- o Docker (uma ferramenta que roda programas em "caixinhas" isoladas);
+- o banco de dados PostgreSQL (o "arquivo" onde as fichas ficam guardadas).
+
+Só depois disso começou a programação, em 14 pequenas etapas, cada uma
+testada antes de passar para a próxima — como construir uma casa cômodo
+por cômodo, vistoriando cada um.
+
+3. O QUE O SISTEMA FAZ (EM LINGUAGEM COMUM)
+--------------------------------------------
+- Cadastro e login: cada pessoa cria sua conta e recebe um "crachá digital"
+  temporário para usar o sistema.
+- Fichas: cada pessoa cria, lê, edita e apaga SOMENTE as próprias fichas.
+  Tentar abrir a ficha de outra pessoa dá "não encontrado" — o sistema nem
+  confirma que ela existe.
+- Cadeado nas observações: o campo confidencial é embaralhado antes de ir
+  para o banco de dados. Quem olhar o banco diretamente vê só rabiscos.
+- Livro de ocorrências: tudo importante é anotado (quem, o quê, quando,
+  deu certo ou não) — mas sem anotar senhas nem segredos.
+- Site com cadeado: o acesso externo usa conexão criptografada (HTTPS).
+
+4. E SE ALGUÉM TENTAR BURLAR?
+------------------------------
+Os testes simulam invasões: senha errada, ficha alheia, conta desativada,
+documento falso, vírus de computador tentando apagar o banco com truques
+(um ataque chamado "injeção de SQL"). Em todos os casos o sistema barrou.
+São 66 testes automáticos que rodam a cada mudança — se algo quebrar, um
+sinal vermelho aparece no site do projeto em minutos.
+
+5. O QUE ELE NÃO É (HONESTIDADE)
+---------------------------------
+- Não é um produto pronto: faltam coisas como atendimento em larga escala
+  e certificado oficial de site.
+- Não é certificado por ninguém: as verificações foram feitas pelo próprio
+  autor com ferramentas públicas, seguindo boas práticas de estudo.
+- Os dados são todos fictícios, de propósito.
+
+6. ONDE VER
+------------
+Código aberto em: https://github.com/FredHM00/dataguard-api
+O selo verde "CI" no topo da página significa: todos os 66 testes passaram
+na última verificação automática.
