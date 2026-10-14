@@ -48,7 +48,8 @@ uvicorn app.main:app --reload --port 8000
 | `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` | sim | Compose + URL do banco |
 | `DATABASE_URL` | não | Sobrescreve a URL montada (CI, testes manuais) |
 | `JWT_SECRET_KEY` | sim | Assinatura dos tokens (sem default de propósito) |
-| `FERNET_KEY` | sim | Criptografia das observações (sem default, sem fallback) |
+| `FERNET_KEY` | não (legado) | Chave única antiga; use `FERNET_KEYS` |
+| `FERNET_KEYS` | sim (uma das duas) | Lista `nova,atual,…` — primeira cifra, todas decifram |
 | `RATELIMIT_STORAGE_URI` | não | `memory://` (padrão, 1 processo) ou `redis://127.0.0.1:6379` (distribuído; Compose já sobe o Redis) |
 
 ## Testes e verificações
@@ -67,7 +68,8 @@ roda em transação com rollback (nada sobrevive).
 
 Ver `docs/endpoints.md` (tabela completa) e `/docs` com a API no ar.
 Resumo: `POST /api/v1/auth/register`, `POST /api/v1/auth/login` (limite
-10/min), `GET /api/v1/users/me`, CRUD em `/api/v1/records` (posse verificada;
+10/min, devolve par access+refresh), `POST /api/v1/auth/refresh` (rotação),
+`POST /api/v1/auth/logout`, `GET /api/v1/users/me`, CRUD em `/api/v1/records` (posse verificada;
 alheio responde 404), `GET /api/v1/audit-logs` (só admin), `GET /health`.
 
 ## Estrutura
@@ -76,16 +78,16 @@ alheio responde 404), `GET /api/v1/audit-logs` (só admin), `GET /health`.
 app/main.py          FastAPI + rate limit + router /api/v1
 app/core/            settings (.env), exceções de domínio, limiter
 app/db/              engine, sessão, Base + convenção de constraints
-app/models/          User, Record, AuditLog (SQLAlchemy 2.x tipado)
+app/models/          User, Record, AuditLog, RefreshToken (SQLAlchemy 2.x tipado)
 app/schemas/         Pydantic v2 (entrada/saída; extra="forbid" nos inputs)
 app/api/             deps (get_current_user, require_admin), rotas v1
-app/services/        regras: cadastro/login, CRUD com posse
-app/security/        Argon2, PyJWT, Fernet (falha fechada no boot)
+app/services/        regras: cadastro/login, refresh com rotação, CRUD com posse
+app/security/        Argon2, PyJWT, Fernet KeyRing + rotate (falha fechada no boot)
 app/audit/           log_action transacional (sem commit próprio)
 migrations/          Alembic (autogenerate sempre revisado antes de aplicar)
 tests/               pytest com banco isolado + rollback
 docs/                sql_examples.sql (didático), endpoints.md
-compose.yaml         Postgres 16 (loopback) + banco de testes no init
+compose.yaml         Postgres 16 (loopback) + Redis + banco de testes no init
 ```
 
 ## Decisões registradas
@@ -95,8 +97,23 @@ compose.yaml         Postgres 16 (loopback) + banco de testes no init
   `SET NULL` na auditoria, 404 em vez de 403 para registro alheio.
 - Detalhes e justificativas nos relatórios das Etapas 0–5.
 
+## Rotação de chaves Fernet (sem downtime)
+
+Perder as chaves = perder as observações (irreversível); trocar sem re-cifrar =
+registros antigos ilegíveis. Procedimento:
+
+```bash
+# 1. Gere a nova chave e coloque-a como PRIMÁRIA (a atual vira fallback):
+#    FERNET_KEYS=<nova>,<atual>
+# 2. Reinicie a API (escreve com a nova, lê com ambas — zero downtime)
+# 3. Re-cifre tudo:
+.venv/bin/python -m app.security.rotate
+# 4. Remova a antiga: FERNET_KEYS=<nova> + restart
+# 5. Descarte a antiga com segurança e faça backup da nova fora do repo
+```
+
 ## Fora de escopo (de propósito)
 
-HTTPS/TLS, rotação de chaves Fernet,
+HTTPS/TLS,
 observabilidade (logs estruturados/métricas), hardening de
 container. Itens para evoluir o portfólio depois.

@@ -1,7 +1,8 @@
 """Configuracoes lidas de variaveis de ambiente (arquivo .env local).
 
 Nenhum segredo mora no codigo: tudo sensivel chega por ambiente.
-JWT_SECRET_KEY e FERNET_KEY nao tem default: sem eles a app nem importa.
+JWT_SECRET_KEY nao tem default: sem ele a app nem importa. O mesmo vale
+para as chaves Fernet (validadas no import de app.security.crypto).
 """
 
 from datetime import timedelta
@@ -10,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Banco (Etapa 2) + JWT (Etapa 3) + Fernet (Etapa 4) + refresh (Etapa 7)."""
+    """Banco (Etapa 2) + JWT (Etapa 3) + Fernet (Etapas 4/9) + refresh (Etapa 7)."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -27,7 +28,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 30
 
-    FERNET_KEY: str
+    # Lista separada por virgula, primeira = primaria (Etapa 9).
+    # FERNET_KEY unica continua aceita como legado.
+    FERNET_KEYS: str | None = None
+    FERNET_KEY: str | None = None
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 

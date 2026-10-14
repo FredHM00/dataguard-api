@@ -22,6 +22,7 @@ class AuditAction:
     RECORD_READ = "record.read"
     RECORD_UPDATE = "record.update"
     RECORD_DELETE = "record.delete"
+    RECORD_REENCRYPT = "record.reencrypt"
     AUDIT_READ = "audit.read"
 
 
