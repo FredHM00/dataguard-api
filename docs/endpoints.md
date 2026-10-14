@@ -40,6 +40,7 @@ Falhas de validação: `422` com o detalhe do campo. Login sob rate limit: `429`
 | Método | Path | Respostas |
 |---|---|---|
 | GET | `/health` | `200` `{"status":"ok"}` (sem auth) |
+| GET | `/metrics` | `200` texto Prometheus (contadores por processo; sem auth) |
 
 ## Fluxo típico
 

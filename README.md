@@ -71,7 +71,14 @@ Ver `docs/endpoints.md` (tabela completa) e `/docs` com a API no ar.
 Resumo: `POST /api/v1/auth/register`, `POST /api/v1/auth/login` (limite
 10/min, devolve par access+refresh), `POST /api/v1/auth/refresh` (rotação),
 `POST /api/v1/auth/logout`, `GET /api/v1/users/me`, CRUD em `/api/v1/records` (posse verificada;
-alheio responde 404), `GET /api/v1/audit-logs` (só admin), `GET /health`.
+alheio responde 404), `GET /api/v1/audit-logs` (só admin), `GET /health`, `GET /metrics`.
+
+## Observabilidade (bancada)
+
+Log JSON em stdout (uma linha por requisição: método, path sanitizado, status,
+duração, `X-Request-ID` gerado ou ecoado). Sem query string e sem corpos no log.
+Contadores em `/metrics` (memória, por processo — Prometheus real exigiria client
+oficial). Em dev, o uvicorn também loga cada request (duplicado com o nosso).
 
 ## Estrutura
 
@@ -115,6 +122,5 @@ registros antigos ilegíveis. Procedimento:
 
 ## Fora de escopo (de propósito)
 
-HTTPS/TLS,
-observabilidade (logs estruturados/métricas), hardening de
+HTTPS/TLS, hardening de
 container. Itens para evoluir o portfólio depois.
