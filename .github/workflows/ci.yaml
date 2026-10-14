@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dataguard
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dataguard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dataguard -d dataguard"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_USER: dataguard
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dataguard
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Ephemeral secrets (per-run, never logged)
+        run: |
+          echo "JWT_SECRET_KEY=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
+          echo "FERNET_KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> "$GITHUB_ENV"
+
+      - name: Create test database
+        run: python -c "import os,psycopg; c=psycopg.connect(host='127.0.0.1',user='dataguard',password='postgres',dbname='postgres'); c.autocommit=True; c.execute('CREATE DATABASE dataguard_test')"
+
+      - name: Migrate (fresh service DB)
+        run: alembic upgrade head
+
+      - name: Tests
+        run: pytest -q
+
+      - name: Bandit
+        run: bandit -r app
+
+      - name: pip-audit
+        run: pip-audit
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
