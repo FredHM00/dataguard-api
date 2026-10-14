@@ -59,6 +59,7 @@ pytest -q                    # suite completa (banco dataguard_test isolado)
 bandit -r app                # análise estática (esperado: limpo)
 pip-audit                    # CVEs nas dependências
 gitleaks detect --source .   # segredos no repo (binário; ver Etapa 5)
+# ZAP baseline (bancada, app no ar): ver docs/zap.md
 ```
 
 Banco de testes: `dataguard_test`, criado pelo init do Compose; cada teste
