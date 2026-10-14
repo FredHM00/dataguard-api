@@ -9,7 +9,13 @@ from app.api.deps import get_current_user
 from app.core.exceptions import DecryptionError, NotFound
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.record import RecordCreate, RecordList, RecordRead, RecordUpdate
+from app.schemas.record import (
+    RecordCreate,
+    RecordCursorPage,
+    RecordList,
+    RecordRead,
+    RecordUpdate,
+)
 from app.services import record_service
 
 router = APIRouter()
@@ -37,6 +43,23 @@ def list_all(
     """Lista paginada dos autorizados; page_size tem teto anti-abuso (100)."""
     items, total = record_service.list_records(db, requester=current, page=page, page_size=page_size)
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/cursor", response_model=RecordCursorPage)
+def list_cursor(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    """Pagina por chave (recomendado em tabelas grandes); cursor opaco e estavel."""
+    try:
+        items, next_cursor = record_service.list_records_cursor(
+            db, requester=current, cursor=cursor, limit=limit
+        )
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="invalid cursor") from None
+    return {"items": items, "next_cursor": next_cursor}
 
 
 @router.get("/{record_id}", response_model=RecordRead)

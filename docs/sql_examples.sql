@@ -71,3 +71,12 @@ SELECT email, COUNT(*) AS total
   FROM users
  GROUP BY email
 HAVING COUNT(*) > 1;
+
+-- 10) PAGINACAO POR CHAVE: mesmos 20 mais recentes que o marco (ts, id).
+-- Comparacao de tupla usa o indice (created_at, id): nao varre nem descarta
+-- como o OFFSET. Troque os literais pelo next_cursor decodificado.
+SELECT id, title, created_at
+  FROM records
+ WHERE (created_at, id) < ('2026-01-01T00:00:00+00:00', '00000000-0000-0000-0000-000000000000')
+ ORDER BY created_at DESC, id DESC
+ LIMIT 20;

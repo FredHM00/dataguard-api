@@ -48,3 +48,8 @@ class RecordList(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class RecordCursorPage(BaseModel):
+    items: list[RecordRead]
+    next_cursor: str | None

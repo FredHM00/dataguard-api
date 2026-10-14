@@ -24,6 +24,7 @@ Falhas de validação: `422` com o detalhe do campo. Login sob rate limit: `429`
 |---|---|---|---|
 | POST | `/records` | `{title ≤200, category ≤50, notes ≤10000}` (nasce `open`) | `201` (com `notes` em claro p/ o dono) |
 | GET | `/records` | `?page≥1` `?page_size 1–100` (padrão 20) | `200` `{items, total, page, page_size}` (só os autorizados) |
+| GET | `/records/cursor` | `?cursor` opaco `?limit 1–100` (padrão 20) | `200` `{items, next_cursor}` (`null` no fim) · `422` cursor adulterado |
 | GET | `/records/{id}` | UUID (`422` se malformado) | `200` · `404` |
 | PATCH | `/records/{id}` | qualquer subconjunto de `{title, category, notes, status∈open\|in_progress\|closed}` | `200` · `404` · `422` |
 | DELETE | `/records/{id}` | — | `204` (sem corpo) · `404` |
