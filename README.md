@@ -2,29 +2,29 @@
 
 [![CI](https://github.com/FredHM00/dataguard-api/actions/workflows/ci.yaml/badge.svg)](https://github.com/FredHM00/dataguard-api/actions)
 
-API REST educacional para gerenciamento de registros fictícios de atendimento, com autenticação JWT, criptografia de observações sensíveis e trilha de auditoria.
+Educational REST API for managing fictitious service records, with JWT authentication, encryption of sensitive notes, and audit trail.
 
-> **Aviso:** projeto de portfólio (nível júnior) para estudo. **Não está pronto para produção**, não garante conformidade legal nem segurança absoluta. Usa apenas dados fictícios. HTTPS, segredos centralizados e demais controles de produção exigiriam configuração adicional.
+> **Warning:** portfolio project (junior level) for study. **Not production-ready** — it does not guarantee legal compliance or absolute security. Uses fictitious data only. HTTPS, centralized secrets, and other production controls would require additional setup.
 
 ## Stack
 
 Python 3.12 · FastAPI · PostgreSQL 16 · SQLAlchemy 2.x · Alembic · Pydantic v2 ·
 PyJWT · Argon2 · Fernet · slowapi · pytest · Bandit · pip-audit · Gitleaks ·
-Docker Compose · GitHub Actions — desenvolvimento em Ubuntu no WSL 2.
+Docker Compose · GitHub Actions — developed on Ubuntu under WSL 2.
 
-## Pré-requisitos
+## Prerequisites
 
-- Ubuntu 24.04 no WSL 2, Docker Desktop com integração WSL ativa
+- Ubuntu 24.04 on WSL 2, Docker Desktop with WSL integration enabled
 - Python 3.12 + `python3.12-venv`, Git
-- Portas livres: `8000` (API), `5432` (Postgres, só loopback)
+- Free ports: `8000` (API), `5432` (Postgres, loopback only)
 
-## Instalação (Ubuntu)
+## Installation (Ubuntu)
 
 ```bash
 git clone <repo> && cd dataguard-api
 cp .env.example .env
 
-# Segredos locais (nunca commitar o .env):
+# Local secrets (never commit .env):
 echo "JWT_SECRET_KEY=$(openssl rand -base64 48)" >> .env
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" >> /tmp/fkey
 echo "FERNET_KEY=$(cat /tmp/fkey)" >> .env && rm /tmp/fkey
@@ -38,9 +38,9 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-Via container (imagem endurecida, sem root, healthcheck; usa a rede do
-Compose, então o `.env` local continua igual — o serviço sobrescreve só
-`POSTGRES_HOST` e `RATELIMIT_STORAGE_URI`):
+Via container (hardened image, non-root, healthcheck; it uses the Compose
+network, so the local `.env` stays the same — the service only overrides
+`POSTGRES_HOST` and `RATELIMIT_STORAGE_URI`):
 
 ```bash
 docker compose up -d --build
@@ -48,105 +48,107 @@ docker compose exec db psql -U dataguard -d dataguard -c "SELECT 1"
 curl -s localhost:8000/health
 ```
 
-## HTTPS local (Caddy, CA interna)
+## Local HTTPS (Caddy, internal CA)
 
-O Compose sobe o Caddy terminando TLS na `127.0.0.1:443` com certificado
-self-signed (`tls internal`) e HSTS. Prova:
+Compose starts Caddy terminating TLS on `127.0.0.1:443` with a self-signed
+certificate (`tls internal`) and HSTS. Proof:
 
 ```bash
-curl -sk -D - https://localhost/health -o /dev/null   # -k: CA interna, só lab
+curl -sk -D - https://localhost/health -o /dev/null   # -k: internal CA, lab only
 ```
 
-Troca consciente: `-k` confia em qualquer certificado — aceitável contra o
-próprio laboratório, proibido como hábito. Em produção, o mesmo Caddyfile com
-domínio real emite ACME público automaticamente (sem `tls internal`), a porta
-da API deixaria de ser publicada e o `uvicorn` continuaria atrás do proxy.
+Conscious tradeoff: `-k` trusts any certificate — acceptable against your own
+lab, forbidden as a habit. In production, the same Caddyfile with a real domain
+issues public ACME automatically (no `tls internal`), the API port would no
+longer be published, and `uvicorn` would stay behind the proxy.
 
-- API: http://localhost:8000 — saúde em `GET /health`
-- OpenAPI interativa: http://localhost:8000/docs
+- API: http://localhost:8000 — health at `GET /health`
+- Interactive OpenAPI: http://localhost:8000/docs
 
-## Variáveis de ambiente
+## Environment variables
 
-| Variável | Obrigatória | Função |
+| Variable | Required | Purpose |
 |---|---|---|
-| `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` | sim | Compose + URL do banco |
-| `DATABASE_URL` | não | Sobrescreve a URL montada (CI, testes manuais) |
-| `JWT_SECRET_KEY` | sim | Assinatura dos tokens (sem default de propósito) |
-| `FERNET_KEY` | não (legado) | Chave única antiga; use `FERNET_KEYS` |
-| `FERNET_KEYS` | sim (uma das duas) | Lista `nova,atual,…` — primeira cifra, todas decifram |
-| `RATELIMIT_STORAGE_URI` | não | `memory://` (padrão, 1 processo) ou `redis://127.0.0.1:6379` (distribuído; Compose já sobe o Redis) |
+| `POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB` | yes | Compose + database URL |
+| `DATABASE_URL` | no | Overrides the assembled URL (CI, manual tests) |
+| `JWT_SECRET_KEY` | yes | Token signing (no default on purpose) |
+| `FERNET_KEY` | no (legacy) | Old single key; use `FERNET_KEYS` |
+| `FERNET_KEYS` | yes (one of the two) | List `new,current,…` — first encrypts, all decrypt |
+| `RATELIMIT_STORAGE_URI` | no | `memory://` (default, single process) or `redis://127.0.0.1:6379` (distributed; Compose already starts Redis) |
 
-## Testes e verificações
+## Tests and checks
 
 ```bash
-pytest -q                    # suite completa (banco dataguard_test isolado)
-bandit -r app                # análise estática (esperado: limpo)
-pip-audit                    # CVEs nas dependências
-gitleaks detect --source .   # segredos no repo (binário; ver Etapa 5)
-# ZAP baseline (bancada, app no ar): ver docs/zap.md
+pytest -q                    # full suite (isolated dataguard_test database)
+bandit -r app                # static analysis (expected: clean)
+pip-audit                    # CVEs in dependencies
+gitleaks detect --source .   # secrets in the repo (binary; see Step 5)
+# ZAP baseline (bench, app running): see docs/zap.md
 ```
 
-Banco de testes: `dataguard_test`, criado pelo init do Compose; cada teste
-roda em transação com rollback (nada sobrevive).
+Test database: `dataguard_test`, created by the Compose init; each test runs
+in a transaction with rollback (nothing survives).
 
 ## Endpoints
 
-Ver `docs/endpoints.md` (tabela completa) e `/docs` com a API no ar.
-Resumo: `POST /api/v1/auth/register`, `POST /api/v1/auth/login` (limite
-10/min, devolve par access+refresh), `POST /api/v1/auth/refresh` (rotação),
-`POST /api/v1/auth/logout`, `GET /api/v1/users/me`, CRUD em `/api/v1/records` (posse verificada;
-alheio responde 404), `GET /api/v1/audit-logs` (só admin), `GET /health`, `GET /metrics`.
+See `docs/endpoints.md` (full table) and `/docs` with the API running.
+Summary: `POST /api/v1/auth/register`, `POST /api/v1/auth/login` (10/min
+limit, returns access+refresh pair), `POST /api/v1/auth/refresh` (rotation),
+`POST /api/v1/auth/logout`, `GET /api/v1/users/me`, CRUD on `/api/v1/records`
+(ownership enforced; foreign records answer 404), `GET /api/v1/audit-logs`
+(admin only), `GET /health`, `GET /metrics`.
 
-## Observabilidade (bancada)
+## Observability (bench)
 
-Log JSON em stdout (uma linha por requisição: método, path sanitizado, status,
-duração, `X-Request-ID` gerado ou ecoado). Sem query string e sem corpos no log.
-Contadores em `/metrics` (memória, por processo — Prometheus real exigiria client
-oficial). Em dev, o uvicorn também loga cada request (duplicado com o nosso).
+JSON logs on stdout (one line per request: method, sanitized path, status,
+duration, generated or echoed `X-Request-ID`). No query strings and no bodies
+in logs. Counters on `/metrics` (in-memory, per process — real Prometheus
+would require the official client). In dev, uvicorn also logs each request
+(duplicated with ours).
 
-## Estrutura
+## Structure
 
 ```
 app/main.py          FastAPI + rate limit + router /api/v1
-app/core/            settings (.env), exceções de domínio, limiter
-app/db/              engine, sessão, Base + convenção de constraints
-app/models/          User, Record, AuditLog, RefreshToken (SQLAlchemy 2.x tipado)
-app/schemas/         Pydantic v2 (entrada/saída; extra="forbid" nos inputs)
-app/api/             deps (get_current_user, require_admin), rotas v1
-app/services/        regras: cadastro/login, refresh com rotação, CRUD com posse
-app/security/        Argon2, PyJWT, Fernet KeyRing + rotate (falha fechada no boot)
-app/audit/           log_action transacional (sem commit próprio)
-migrations/          Alembic (autogenerate sempre revisado antes de aplicar)
-tests/               pytest com banco isolado + rollback
-docs/                sql_examples.sql (didático), endpoints.md
-compose.yaml         Postgres 16 + Redis (loopback) + API endurecida + banco de testes no init
-Dockerfile           imagem slim, non-root uid 10000, sem .env, healthcheck stdlib
-.dockerignore        garante que segredo e ferramenta nunca entram na imagem
+app/core/            settings (.env), domain exceptions, limiter
+app/db/              engine, session, Base + constraint naming convention
+app/models/          User, Record, AuditLog, RefreshToken (typed SQLAlchemy 2.x)
+app/schemas/         Pydantic v2 (input/output; extra="forbid" on inputs)
+app/api/             deps (get_current_user, require_admin), v1 routes
+app/services/        rules: signup/login, refresh with rotation, owned CRUD
+app/security/        Argon2, PyJWT, Fernet KeyRing + rotate (fail-closed at boot)
+app/audit/           transactional log_action (no commit of its own)
+migrations/          Alembic (autogenerate always reviewed before applying)
+tests/               pytest with isolated database + rollback
+docs/                sql_examples.sql (didactic), endpoints.md
+compose.yaml         Postgres 16 + Redis (loopback) + hardened API + test DB in init
+Dockerfile           slim image, non-root uid 10000, no .env, stdlib healthcheck
+.dockerignore        ensures secrets and tooling never enter the image
 ```
 
-## Decisões registradas
+## Recorded decisions
 
-- UUID como PK (anti-enumeração), Checks em vez de ENUM nativo (migração simples),
-  `notes_ciphertext` (nome documenta o conteúdo), `CASCADE` nos registros vs
-  `SET NULL` na auditoria, 404 em vez de 403 para registro alheio.
-- Detalhes e justificativas nos relatórios das Etapas 0–5.
+- UUID as PK (anti-enumeration), CHECKs instead of native ENUM (simple
+  migrations), `notes_ciphertext` (name documents the content), `CASCADE` on
+  records vs `SET NULL` on audit, 404 instead of 403 for foreign records.
+- Details and rationale in the Step 0–5 reports.
 
-## Rotação de chaves Fernet (sem downtime)
+## Fernet key rotation (no downtime)
 
-Perder as chaves = perder as observações (irreversível); trocar sem re-cifrar =
-registros antigos ilegíveis. Procedimento:
+Losing the keys = losing the notes (irreversible); rotating without
+re-encrypting = old records unreadable. Procedure:
 
 ```bash
-# 1. Gere a nova chave e coloque-a como PRIMÁRIA (a atual vira fallback):
-#    FERNET_KEYS=<nova>,<atual>
-# 2. Reinicie a API (escreve com a nova, lê com ambas — zero downtime)
-# 3. Re-cifre tudo:
+# 1. Generate the new key and make it PRIMARY (current becomes fallback):
+#    FERNET_KEYS=<new>,<current>
+# 2. Restart the API (writes with the new key, reads with both — zero downtime)
+# 3. Re-encrypt everything:
 .venv/bin/python -m app.security.rotate
-# 4. Remova a antiga: FERNET_KEYS=<nova> + restart
-# 5. Descarte a antiga com segurança e faça backup da nova fora do repo
+# 4. Remove the old one: FERNET_KEYS=<new> + restart
+# 5. Securely discard the old key and back up the new one outside the repo
 ```
 
-## Evoluções futuras (fora deste ciclo)
+## Future work (out of this cycle)
 
-Manifestos Kubernetes, backup/restore do Postgres, alertas sobre métricas.
-O ciclo de portfólio (Etapas 0–14) está fechado.
+Kubernetes manifests, Postgres backup/restore, metric alerts.
+The portfolio cycle (Steps 0–14) is closed.

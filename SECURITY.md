@@ -1,37 +1,37 @@
-# Segurança — como relatar problemas
+# Security — how to report issues
 
-## Escopo
+## Scope
 
-Este é um **projeto educacional de portfólio**, mantido sem SLA e sem garantias.
-Ele **não** está pronto para produção: não há TLS, segredos centralizados,
-rate limit distribuído nem rotação de chaves (ver README, "Fora de escopo").
+This is an **educational portfolio project**, maintained with no SLA and no
+guarantees. It is **not** production-ready: no TLS, no centralized secrets,
+no distributed rate limiting, no key rotation (see README, out-of-scope notes).
 
-## Como relatar
+## How to report
 
-**Não abra issue pública com detalhes da vulnerabilidade.** Prefira, nesta ordem:
+**Do not open a public issue with vulnerability details.** Prefer, in this order:
 
-1. **Private vulnerability reporting** do GitHub (aba Security → Report a vulnerability),
-   se habilitado no repositório; ou
-2. Mensagem privada ao mantenedor pelo perfil do GitHub.
+1. GitHub **private vulnerability reporting** (Security tab → Report a vulnerability),
+   if enabled on the repository; or
+2. A private message to the maintainer via the GitHub profile.
 
-Inclua: descrição, passos de reprodução, impacto estimado e, se houver, sugestão
-de correção. Logs e exemplos devem usar **dados fictícios** (nunca dados reais).
+Include: description, reproduction steps, estimated impact and, if any, a
+suggested fix. Logs and examples must use **fictitious data** (never real data).
 
-## O que é útil relatar
+## Useful to report
 
-Falhas de autenticação/autorização, exposição de observações em claro, bypass de
-posse de registros, segredos commitados, dependência vulnerável sem correção
-documentada.
+Authentication/authorization failures, plaintext exposure of notes, record
+ownership bypass, committed secrets, vulnerable dependency without a
+documented fix.
 
-## Fora de escopo de reporte
+## Out of reporting scope
 
-- Segredos de desenvolvimento claramente marcados em `.env.example`
-  (placeholders locais, nunca usados fora do laboratório).
-- Ausência dos controles listados como "fora de escopo" no README.
-- Alertas de scanner sem demonstração de impacto (envie o PoC junto).
+- Development secrets clearly marked in `.env.example`
+  (local placeholders, never used outside the lab).
+- Missing controls listed as out of scope in the README.
+- Scanner alerts with no demonstrated impact (send the PoC along).
 
-## Compromisso
+## Commitment
 
-Sem prazo garantido (projeto pessoal de estudo), mas todo relato legítimo será
-analisado, corrigido se procedente e creditado no histórico, sem exposição de
-dados sensíveis no processo.
+No guaranteed timeline (personal study project), but every legitimate report
+will be reviewed, fixed if valid, and credited in the history, without
+exposing sensitive data in the process.
