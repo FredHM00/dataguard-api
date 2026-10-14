@@ -1,4 +1,22 @@
 services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Dentro da rede do Compose, os vizinhos sao hostnames, nao loopback.
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      RATELIMIT_STORAGE_URI: redis://redis:6379
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped

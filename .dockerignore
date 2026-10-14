@@ -1,0 +1,19 @@
+# Nada disto entra na imagem (em especial: nunca o .env com segredos).
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+.pytest_cache/
+.coverage/
+htmlcov/
+.git/
+.github/
+tests/
+docs/
+docker/
+*.md
+!README.md
+!pyproject.toml

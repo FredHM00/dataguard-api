@@ -67,6 +67,22 @@ jobs:
       - name: Tests
         run: pytest -q
 
+      - name: Build API image
+        run: docker build -t dataguard-api:ci .
+
+      - name: Smoke test (container)
+        run: |
+          docker run -d --name apismoke --network host \
+            -e POSTGRES_HOST=127.0.0.1 -e POSTGRES_USER=dataguard \
+            -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=dataguard \
+            -e JWT_SECRET_KEY="$JWT_SECRET_KEY" -e FERNET_KEY="$FERNET_KEY" \
+            dataguard-api:ci
+          for i in $(seq 1 24); do
+            curl -sf http://127.0.0.1:8000/health && break || sleep 5
+          done
+          curl -sf http://127.0.0.1:8000/health
+          docker rm -f apismoke
+
       - name: Bandit
         run: bandit -r app
 

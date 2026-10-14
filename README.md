@@ -38,6 +38,16 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
+Via container (imagem endurecida, sem root, healthcheck; usa a rede do
+Compose, então o `.env` local continua igual — o serviço sobrescreve só
+`POSTGRES_HOST` e `RATELIMIT_STORAGE_URI`):
+
+```bash
+docker compose up -d --build
+docker compose exec db psql -U dataguard -d dataguard -c "SELECT 1"
+curl -s localhost:8000/health
+```
+
 - API: http://localhost:8000 — saúde em `GET /health`
 - OpenAPI interativa: http://localhost:8000/docs
 
@@ -95,7 +105,9 @@ app/audit/           log_action transacional (sem commit próprio)
 migrations/          Alembic (autogenerate sempre revisado antes de aplicar)
 tests/               pytest com banco isolado + rollback
 docs/                sql_examples.sql (didático), endpoints.md
-compose.yaml         Postgres 16 (loopback) + Redis + banco de testes no init
+compose.yaml         Postgres 16 + Redis (loopback) + API endurecida + banco de testes no init
+Dockerfile           imagem slim, non-root uid 10000, sem .env, healthcheck stdlib
+.dockerignore        garante que segredo e ferramenta nunca entram na imagem
 ```
 
 ## Decisões registradas
@@ -122,5 +134,4 @@ registros antigos ilegíveis. Procedimento:
 
 ## Fora de escopo (de propósito)
 
-HTTPS/TLS, hardening de
-container. Itens para evoluir o portfólio depois.
+HTTPS/TLS. Itens para evoluir o portfólio depois.
