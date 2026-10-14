@@ -115,6 +115,19 @@ def test_me_with_expired_token_returns_401(client):
     assert response.status_code == 401
 
 
+def test_login_rate_limit_blocks_abuse(client):
+    _register(client, email="alvo-rl@example.com")
+    statuses = [
+        client.post(
+            f"{PREFIX}/auth/login",
+            data={"username": "alvo-rl@example.com", "password": "segredo-123"},
+        ).status_code
+        for _ in range(11)
+    ]
+    assert statuses[:10] == [200] * 10
+    assert statuses[10] == 429
+
+
 def test_password_is_hashed_in_database(client):
     _register(client, email="hash@example.com", password="segredo-123")
     from sqlalchemy import select

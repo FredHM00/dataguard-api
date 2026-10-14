@@ -32,6 +32,9 @@ def _schema():
 
 @pytest.fixture()
 def client():
+    from app.core.rate_limit import limiter as _limiter  # noqa: PLC0415
+
+    _limiter._storage.reset()  # isolamento: zera o rate limit entre testes
     connection = test_engine.connect()
     transaction = connection.begin()
     session = TestingSession(bind=connection)

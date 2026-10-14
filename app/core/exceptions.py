@@ -11,3 +11,11 @@ class InvalidCredentials(Exception):
 
 class InvalidToken(Exception):
     """JWT ausente, adulterado, expirado ou malformado (vira 401)."""
+
+
+class NotFound(Exception):
+    """Recurso inexistente OU nao autorizado (vira 404 nos dois casos)."""
+
+
+class DecryptionError(Exception):
+    """Falha ao descriptografar (chave trocada? dado corrompido? vira 500)."""
