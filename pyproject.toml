@@ -1,0 +1,34 @@
+[project]
+name = "dataguard-api"
+version = "0.1.0"
+description = "API REST educacional para registros de atendimento (projeto de portfolio backend junior)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+    "pydantic-settings",
+    "email-validator",
+    "sqlalchemy>=2",
+    "alembic",
+    "psycopg[binary]",
+    "pyjwt",
+    "argon2-cffi",
+    "cryptography",
+    "slowapi",
+    "pytest",
+    "httpx",
+    "bandit",
+    "pip-audit",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
